@@ -1,10 +1,2 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    serverActions: { bodySizeLimit: "2mb" },
-  },
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
-};
-
-module.exports = nextConfig;
+// This file intentionally left empty - using next.config.ts instead
+// next.config.ts takes precedence when both exist
