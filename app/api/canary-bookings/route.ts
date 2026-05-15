@@ -3,14 +3,18 @@ import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { canaryBookings, canaryAvailabilitySlots } from "@/db/schema";
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 const CreateBookingSchema = z.object({
   slot_id: z.string().uuid(),
   customer_email: z.string().email(),
   note: z.string().optional(),
 });
+
+type SlotRow = { id: string; is_booked: boolean };
+type BookingResult =
+  | { ok: true; booking: typeof canaryBookings.$inferSelect }
+  | { ok: false; code: string; message: string; httpStatus: number };
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,19 +30,24 @@ export async function POST(req: NextRequest) {
     const { slot_id, customer_email, note } = parsed.data;
 
     // Transaction with SELECT FOR UPDATE prevents race-condition double-booking
-    const result = await db.transaction(async (tx) => {
+    const result: BookingResult = await db.transaction(async (tx) => {
       const slots = await tx.execute(
         sql`SELECT id, is_booked FROM canary_availability_slots WHERE id = ${slot_id} FOR UPDATE`
       );
 
-      const slot = (slots.rows as Array<{ id: string; is_booked: boolean }>)[0];
+      const slot = (slots.rows as SlotRow[])[0];
 
       if (!slot) {
-        return { error: { code: "SLOT_NOT_FOUND", message: "Slot not found" }, status: 404 };
+        return { ok: false, code: "SLOT_NOT_FOUND", message: "Slot not found", httpStatus: 404 };
       }
 
       if (slot.is_booked) {
-        return { error: { code: "SLOT_ALREADY_BOOKED", message: "This slot is already booked" }, status: 409 };
+        return {
+          ok: false,
+          code: "SLOT_ALREADY_BOOKED",
+          message: "This slot is already booked",
+          httpStatus: 409,
+        };
       }
 
       await tx
@@ -55,11 +64,14 @@ export async function POST(req: NextRequest) {
         })
         .returning();
 
-      return { booking, status: 201 };
+      return { ok: true, booking };
     });
 
-    if ("error" in result) {
-      return Response.json({ ok: false, error: result.error }, { status: result.status });
+    if (!result.ok) {
+      return Response.json(
+        { ok: false, error: { code: result.code, message: result.message } },
+        { status: result.httpStatus }
+      );
     }
 
     return Response.json({ ok: true, booking: result.booking }, { status: 201 });
@@ -88,7 +100,10 @@ export async function GET() {
         providerEmail: canaryAvailabilitySlots.providerEmail,
       })
       .from(canaryBookings)
-      .leftJoin(canaryAvailabilitySlots, eq(canaryBookings.slotId, canaryAvailabilitySlots.id))
+      .leftJoin(
+        canaryAvailabilitySlots,
+        eq(canaryBookings.slotId, canaryAvailabilitySlots.id)
+      )
       .orderBy(desc(canaryBookings.createdAt))
       .limit(100);
 
