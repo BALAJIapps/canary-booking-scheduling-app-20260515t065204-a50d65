@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Plus } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface Slot {
@@ -19,13 +19,16 @@ interface Slot {
 export default function AvailabilityPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(false);
-  const [fetched, setFetched] = useState(false);
   const [form, setForm] = useState({
     provider_email: "",
     starts_at: "",
     ends_at: "",
     timezone: "UTC",
   });
+
+  useEffect(() => {
+    fetchSlots();
+  }, []);
 
   async function fetchSlots() {
     try {
@@ -34,12 +37,8 @@ export default function AvailabilityPage() {
       if (data.ok) setSlots(data.slots);
     } catch {
       toast.error("Failed to load slots");
-    } finally {
-      setFetched(true);
     }
   }
-
-  if (!fetched) fetchSlots();
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +101,12 @@ export default function AvailabilityPage() {
               id="starts_at"
               type="datetime-local"
               value={form.starts_at}
-              onChange={(e) => setForm((f) => ({ ...f, starts_at: e.target.value ? new Date(e.target.value).toISOString() : "" }))}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  starts_at: e.target.value ? new Date(e.target.value).toISOString() : "",
+                }))
+              }
               required
             />
           </div>
@@ -112,7 +116,12 @@ export default function AvailabilityPage() {
               id="ends_at"
               type="datetime-local"
               value={form.ends_at}
-              onChange={(e) => setForm((f) => ({ ...f, ends_at: e.target.value ? new Date(e.target.value).toISOString() : "" }))}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  ends_at: e.target.value ? new Date(e.target.value).toISOString() : "",
+                }))
+              }
               required
             />
           </div>

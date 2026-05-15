@@ -177,8 +177,8 @@ export default function Home() {
             </thead>
             <tbody>
               {[
-                { customer: "alice@example.com", provider: "coach@example.com", time: "Jan 2 · 10:00", status: "confirmed" },
-                { customer: "bob@example.com", provider: "coach@example.com", time: "Jan 2 · 14:00", status: "confirmed" },
+                { customer: "alice@schedule.co", provider: "coach@schedule.co", time: "Jan 2 · 10:00", status: "confirmed" },
+                { customer: "bob@schedule.co", provider: "coach@schedule.co", time: "Jan 2 · 14:00", status: "confirmed" },
               ].map((row, i) => (
                 <tr key={i} className="border-b border-neutral-100 last:border-0">
                   <td className="px-4 py-3 text-neutral-900">{row.customer}</td>

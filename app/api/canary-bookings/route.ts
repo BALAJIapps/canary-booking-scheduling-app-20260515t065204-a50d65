@@ -1,3 +1,4 @@
+// Canary API — intentionally public (no auth required by canary contract)
 import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { canaryBookings, canaryAvailabilitySlots } from "@/db/schema";
@@ -24,9 +25,8 @@ export async function POST(req: NextRequest) {
 
     const { slot_id, customer_email, note } = parsed.data;
 
-    // Use a transaction with SELECT FOR UPDATE to prevent double-booking
+    // Transaction with SELECT FOR UPDATE prevents race-condition double-booking
     const result = await db.transaction(async (tx) => {
-      // Lock the slot row to prevent concurrent double-books
       const slots = await tx.execute(
         sql`SELECT id, is_booked FROM canary_availability_slots WHERE id = ${slot_id} FOR UPDATE`
       );
@@ -41,13 +41,11 @@ export async function POST(req: NextRequest) {
         return { error: { code: "SLOT_ALREADY_BOOKED", message: "This slot is already booked" }, status: 409 };
       }
 
-      // Mark slot as booked
       await tx
         .update(canaryAvailabilitySlots)
         .set({ isBooked: true })
         .where(eq(canaryAvailabilitySlots.id, slot_id));
 
-      // Create booking
       const [booking] = await tx
         .insert(canaryBookings)
         .values({

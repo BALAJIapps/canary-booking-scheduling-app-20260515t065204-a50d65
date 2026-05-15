@@ -1,3 +1,4 @@
+// Canary API — intentionally public (no auth required by canary contract)
 import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { canaryAvailabilitySlots } from "@/db/schema";

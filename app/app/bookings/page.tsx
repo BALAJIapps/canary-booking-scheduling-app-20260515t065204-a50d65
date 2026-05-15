@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,7 @@ export default function BookingsPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
+  const isMounted = useRef(true);
   const [form, setForm] = useState({
     slot_id: "",
     customer_email: "",
@@ -41,7 +42,9 @@ export default function BookingsPage() {
   });
 
   useEffect(() => {
+    isMounted.current = true;
     fetchData();
+    return () => { isMounted.current = false; };
   }, []);
 
   async function fetchData() {
@@ -52,10 +55,11 @@ export default function BookingsPage() {
       ]);
       const slotsData = await slotsRes.json();
       const bookingsData = await bookingsRes.json();
+      if (!isMounted.current) return;
       if (slotsData.ok) setSlots(slotsData.slots.filter((s: Slot) => !s.isBooked));
       if (bookingsData.ok) setBookings(bookingsData.bookings);
     } catch {
-      toast.error("Failed to load data");
+      if (isMounted.current) toast.error("Failed to load data");
     }
   }
 
@@ -75,7 +79,7 @@ export default function BookingsPage() {
       }
       toast.success("Booking confirmed");
       setForm({ slot_id: "", customer_email: "", note: "" });
-      fetchData();
+      await fetchData();
     } catch {
       toast.error("Network error");
     } finally {
@@ -116,7 +120,7 @@ export default function BookingsPage() {
             <Input
               id="customer_email"
               type="email"
-              placeholder="customer@example.com"
+              placeholder="you@example.com"
               value={form.customer_email}
               onChange={(e) => setForm((f) => ({ ...f, customer_email: e.target.value }))}
               required
