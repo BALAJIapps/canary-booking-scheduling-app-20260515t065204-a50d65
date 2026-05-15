@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: canary-booking-scheduling-app-20260515t065204
+    runtime: node
+    buildCommand: pnpm install --no-frozen-lockfile --prod=false && pnpm build
+    startCommand: pnpm exec next start -H 0.0.0.0 -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20.11.0
